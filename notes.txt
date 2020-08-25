@@ -1,0 +1,11 @@
+        
+notes: lmao don't try and name something starting with elipses
+don't leave blank lines in your data[[]] block
+
+7275 oh no
+
+bugs:
+entering hall when dark = no pc - but exit and reenter and you appear
+picking "fuck this" before talking to it doesn't exit
+lookat brick in inventory says wrong thing
+can't leave kitchen
