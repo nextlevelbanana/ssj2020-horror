@@ -6,15 +6,7 @@ __lua__
 cartdata("nlb_batshit_basement")
 --- this one is the rooms ----
 swear = dget(0) == 2
-gone_inside = dget(1) == 1
--- 0: swear (true = 2, false = 1)
--- 1: gone_inside
--- 2: lighting level of living room
--- 3: greg's window open
--- 4: has brick 1 no 2 yes
--- 63: what ending to use:
-----1: bus and demon gets loose
-----2: eaten by demon?
+
 
 menuitem(1, "clear+start new", function()
 	for i=0,63 do
@@ -24,10 +16,10 @@ menuitem(1, "clear+start new", function()
 end)
 
 -- [debug flags]
--- show_debuginfo = true
+ --show_debuginfo = true
 -- show_collision = true
 -- show_pathfinding = true
--- show_depth = true
+ --show_depth = true
 
 -- [game flags]
 enable_diag_squeeze = false	-- allow squeeze through diag gap?
@@ -42,8 +34,8 @@ verbs = {
 	{ { pickup = "pickup" }, text = "pick-up" },
 	{ { lookat = "lookat" }, text = "look-at" },
 	{ { talkto = "talkto" }, text = "talk-to" },
-	{ { push = "push" }, text = "push" },
-	{ { pull = "pull" }, text = "pull"},
+--	{ { push = "push" }, text = "push" },
+--	{ { pull = "pull" }, text = "pull"},
 	{ { use = "use" }, text = "use"}
 }
 -- verb to use when just clicking aroung (e.g. move actor)
@@ -74,44 +66,104 @@ reset_ui()
 -- 
 
 -- [ ground floor ]
-
-		
-
-		obj_lightswitch = {		
-			data = [[
-				name=light switch
-				state=state_here
-				x=3
-				y=23
-				w=1
-				h=1
-				state_here=125
-				lighting=0.6
-				trans_col=11
-				use_pos= {8,56}
-				use_dir=face_left
-			]],
-			verbs = {
-				use = function(me)
-					if me.on then
-						rm_hall.lighting = 0.25
-						obj_lightswitch.lighting = 0.6
-						me.on = false
-					else
-						rm_hall.lighting = 1
-						obj_lightswitch.lighting = 1
-						me.on = true	
+obj_tuna = {
+	data = [[
+		name=can of tuna
+		state=state_gone
+		state_gone=97
+		state_open=98
+		w=1
+		h=1
+		z=6
+		x=34
+		y=27
+		classes={class_openable, class_pickupable}
+		trans_col=0
+		use_with=true
+	]],
+	verbs = {
+		lookat = function(me)
+			if me.state == "state_here" then
+			say_line("it's a can of tuna? in the fridge for some reason?")
+			else
+				say_line("a can of tuna")
+			end
+		end,
+		pickup = function(me)
+			me.state = "state_gone"
+			pickup_obj(me)
+			dset(16,2)
+		end,
+		open = function(me)
+			say_line("it doesn't have a pop top. annoying.")
+		end,
+		give = function(me,noun2)
+			if noun2 == cat and obj_tuna.state == "state_open" then
+				dset(18,6)
+				cutscene(
+					1, -- no verbs
+					function()
+						say_line("maybe this will distract you")
+						stop_script(cat.scripts.summon)
+						stop_script(cat.scripts.follow)
+						stop_actor(cat)
+						cat.flip_x = true
+						obj_tuna.owner = cat
+						put_at(obj_tuna, 110,49, room_curr)
+						obj_tuna.state = "state_open"								
+						say_line(cat, "*prrrrrrr*")
 					end
-				end,
-				lookat = function()
-					if not islit() then
-						say_line("ironically, i must use it in order to understand it")
-					else
-						say_line("it's a lightswitch alright.")
-					end
-				end
-			}
-		}
+				)
+				
+			end
+		end,
+		use = function(me, noun2)
+			if dget(13) < 2 then
+				say_line("I know we used to have a can opener...")
+			elseif dget(14) < 2 then
+				say_line("the can opener won't turn on")
+			elseif noun2 == obj_can_opener then
+				say_line(me, "*brrrrrrrrr*")
+				obj_tuna.state = "state_open"
+				dset(16,3)
+				start_script(cat.scripts.summon)
+			end
+		end
+	}
+
+}
+
+obj_can_opener = {
+	data = [[
+		name = broken can opener
+		state=state_here
+		w=1
+		h=1
+		x=58
+		y=64
+		z=30
+		state_here=159
+		state_gone=143
+		state_powered=175
+		trans_col=11
+		use_with=true
+	]],
+	verbs = {
+		lookat = function()
+			say_line("i remember this thing -: it won't turn on for some reason.:we, uh, got drunk and gave it a burial at couch.")
+		end,
+		use = function(me, noun2)
+			if dget(14) < 2 then
+				say_line("the can opener won't turn on")
+			elseif noun2 == obj_tuna then
+				say_line(me, "*brrrrrrrrr*")
+				obj_tuna.state = "state_open"
+				dset(16,3)
+				start_script(cat.scripts.summon)
+			end
+		end
+	}
+}
 
 		obj_greg_window_inside = {
 			data = [[
@@ -128,17 +180,13 @@ reset_ui()
 			]],
 			verbs = {
 				walkto = function(me)
-					if me.state == "state_open" and can_leave then
-						load("bb-game1")
-					else
-						say_line("i can't reach it!")
-					end
+					say_line("i can't reach it!")
 				end,
 				lookat = function()
 					say_line("didn't really think that one through, did i...: how am I gonna get out?")
 				end,
 				open = function()
-					say_line("that's as open as it's gonna get: i think i can squeeze through now")	
+					say_line("that's as open as it's gonna get:not that it does me any good from down here")	
 				end,
 				close = function()
 					say_line("I think that ship has sailed")
@@ -154,54 +202,266 @@ reset_ui()
 					w=4
 					h=3
 					z=1
-					state=state_closed
 					state_closed=128
 					state_open=132
 					lighting=1
 					trans_col=11
 					classes={class_openable}
-				]],
-				verbs = {
-					lookat = function(me)
-						say_line("this bad boy can fit so many ghosts")
-					end,
-					open = function(me)
-						me.state = "state_open"
-					end,
-					close = function(me)
-						me.state = "state_closed"
+			]],
+			verbs = {
+				lookat = function(me)
+					say_line("this bad boy can fit so many ghosts")
+				end,
+				open = function(me)
+					me.state = "state_open"
+					dset(9,2)
+				end,
+				close = function(me)
+					me.state = "state_closed"
+					dset(9,1)
+				end
+			}
+		}
+
+		obj_skull = {
+			data = [[
+				name= tiny skull
+				x=78
+				y=26
+				w=1
+				h=1
+				state=state_here
+				state_here=137
+				state_gone=136
+				classes={class_pickupable}
+				trans_col=11
+				z=2
+				dependent_on_state=state_open
+				use_pos={64,25}
+			]],
+			dependent_on=obj_desk,
+			verbs = {
+				lookat = function(me)
+					say_line("like a rat or something?")
+				end,
+				pickup = function(me)
+					pickup_obj(me)
+					me.state="state_gone"
+					say_line("this might be the worst thing I've ever put in my pocket")
+					say_line(me, "i'm free at last!!:*poof*")
+					me.state="state_here"
+					me.owner=nil
+					say_line("what th--? fine, whatever")
+				end
+			}
+		}
+
+		obj_book = {
+			data = [[
+				name=dusty tome
+				x=88
+				y=10
+				state_gone = 82
+				state_here = 0
+				state = state_here
+				w=1
+				h=1
+				z=4
+				classes={class_pickupable, class_usable}
+				trans_col=11
+				use_pos={88,50}
+			]],
+			verbs = {
+				lookat = function(me)
+					say_line("Magickal Crystals of the Pacific Northwest: A Field Guide")
+				end,
+				pickup = function(me)
+					me.state = "state_gone"
+					pickup_obj(me)
+					dset(5,2)
+				end,
+				use = function(me)
+					say_line("...'asmodite grants its wielder powers of levitation'... 'beelzebite can heal a fever'...:oh hey, greg's crystals are in here!")
+					obj_power_crystal.name = "power crystal"
+					obj_door_crystal.name = "wayfinding crystal"
+					dset(15,2)
+				end
+			}
+		}
+
+		obj_power_crystal = {
+			data = [[
+				name = crystal
+				x = 67
+				y = 24
+				w=1
+				h=1
+				z=4
+				state=state_here
+				state_here= 81
+				state_gone = 81
+				classes={class_pickupable}
+				trans_col=11
+				dependent_on_state=state_open
+				use_with=true
+			]],
+			dependent_on = obj_desk,
+			verbs = {
+				lookat = function(me)
+					if dget(15) > 1 then
+						say_line("it's a 'crystal of energy flow' according to the book")
+					else
+						say_line("it's a crystal. blueish? makes my hand all tingly.")
 					end
-				}
+				end,
+				use = function(me, noun2)
+					if noun2 == obj_can_opener then
+						obj_can_opener.state = "state_powered"
+						obj_can_opener.name = "working can opener"
+						me.state = "state_gone"
+						put_at(me,0,0,rm_void)
+						dset(14,2)
+						dset(13,1)
+						dset(6,3)
+						print_line("*brrrrrrrrrrr*", main_actor.x+8, main_actor.y,12)
+						say_line("haha, can opener go brrr: i mean - hey, it's working now!")
+					end
+				end,
+				pickup = function(me)
+					pickup_obj(me)
+					me.state = "state_gone"
+					dset(6,2)
+				end
+			}
+		}
+
+		obj_magic_door = {		
+			data = [[
+				name = unsettlingly new door
+				w=1
+				h=4
+				state_open=6
+				state_closed = 78
+				state_invis = 0
+				state = state_invis
+				x=8
+				y=16
+				z=2
+				classes = {class_openable}
+				use_pos = pos_right
+				use_dir = face_left
+			]],
+			col_replace={4,11},
+			verbs = {
+				walkto = function(me)
+					if me.state == "state_open" then
+						load("bb-game2")
+					end
+				end,
+				open = function(me)
+					me.state="state_open"
+					start_script(me.scripts.anim_portal)
+				 end,
+				close = function(me)
+					me.state= "state_closed"
+					stop_script(obj_magic_door.scripts.anim_portal)
+				end,
+				use = function(me)
+					if me.state == "state_open" then
+						dset(8,2)
+						load("bb-game2")
+					else
+						me.state = "state_open"
+						start_script(me.scripts.anim_portal)
+					end
+				end,
+				lookat = function()
+					say_line("ok i *know* there's not normally a door there.")
+				end
+			},
+			scripts = {
+				anim_portal = function()
+					local cols = {3,10,11,7}
+					local idx = 0
+					while true do
+						obj_magic_door.col_replace = {cols[((idx)%4)+1], cols[((idx+2)%4)+1]}
+						idx +=1
+						break_time(5)
+					end
+				end
+			}
+		}
+
+		obj_door_crystal = {
+			data = [[
+				name = crystal
+				x = 96
+				y = 6
+				w=1
+				h=1
+				z=4
+				state=state_here
+				state_here= 81
+				state_gone = 81
+				classes={class_pickupable}
+				trans_col=11
+				use_pos = {96,50}
+			]],
+			verbs = {
+				lookat = function(me)
+					say_line(dget(15) > 1 and "it's a 'crystal of wayfinding' according to the book" or "it's a crystal, uh, a yellowy one")
+				end,
+				pickup = function(me)
+					pickup_obj(me)
+					me.state = "state_gone"
+					dset(7,2)
+				end,
+				use = function(me)
+					shake(true)
+					local doory = 6
+					local doorx = (main_actor.face_dir == "face_front" 
+						or main_actor.face_dir == "face_back") and main_actor.x or (
+							main_actor.face_dir == "face_left" and 16 or 169)
+					obj_magic_door.z = 2
+					obj_magic_door.state_closed = (main_actor.face_dir == "face_front" or main_actor.face_dir == "face_front") and 78 or 79
+					obj_magic_door.h = obj_magic_door.state_closed == 78 and 3 or 4
+					obj_magic_door.state = "state_closed"
+					obj_magic_door.flip_x = main_actor.face_dir == "face_right"
+					put_at(obj_magic_door, doorx, doory,rm_greg)
+					shake(false)
+				end
 			}
 
-			obj_skull = {
-				data = [[
-					name= tiny skull
-					x=78
-					y=26
-					w=1
-					h=1
-					state=state_here
-					state_here=137
-					state_gone=136
-					classes={class_pickupable}
-					trans_col=11
-					z=2
-					dependent_on_state=state_open
-					use_pos={64,25}
+		}
+
+		obj_coins = {
+			data = [[
+				name=loose change
+				state=state_here
+				w=1
+				h=1
+				x=59
+				y=38
+				z=60
+				trans_col=0
+				state_here=179
+				state_gone=178
+				use_with=true
 				]],
-				dependent_on=obj_desk,
-				verbs = {
-					lookat = function(me)
-						say_line("like a rat or something?")
-					end,
-					pickup = function(me)
-						pickup_obj(me)
-						me.state="state_gone"
-						say_line("this might be the worst thing I've ever put in my pocket")
+			verbs = {
+				lookat = function()
+					say_line("that's half a load of laundry, right there")
+				end,
+				give=function(me, noun2)
+					if noun2 == obj_ward then
+						obj_coins.state = "state_gone"
+						put_at(obj_coins, 0,0,rm_void)
+						dset(17,2)
+						say_line(obj_ward, "hot dog, two whole quarters!:*cough* i mean.:i wilt do thyst bidding now, master")
 					end
-				}
+				end
 			}
+		}
 
 		obj_sleeping_bag = {
 			data = [[
@@ -221,6 +481,9 @@ reset_ui()
 				verbs = {
 					lookat = function(me)
 						say_line("a sleeping bag on the floor. not even a pillow?")
+					end,
+					use = function()
+						say_line("what do you think this is, fanfic? absolutely not")
 					end
 				}
 			}
@@ -239,13 +502,145 @@ reset_ui()
 				face_dir=face_right
 				use_pos=pos_right
 				classes={class_talkable, class_pickupable}
+				use_with=true
 			]],
 			verbs = {
 				lookat = function(me)
-					say_line("the cat's sitting on something:...that's glowing...:...and whispering...")
+					if dget(18) < 2 then
+						say_line("the cat's sitting on something:...that's glowing...:...and whispering...")
+						say_line(obj_ward, "help! help!")
+					else
+						say_line("it's pretty, in a terrifying kind of way")
+						print_line("take a picture, it lasts longer!", obj_ward.x,obj_ward.y - 12,7,1)
+					end
+				end,
+				talkto = function(me)
+					if dget(20) > 1 then
+						if dget(17) < 2 then
+							print_line("for a ~~price~~",obj_ward.x,obj_ward.y - 12,7,1)
+						else
+							say_line(me,"hey buddy! u ready to banish some "..(swear and "shit" or "stuff").."?")
+						end
+					else
+						say_line(obj_ward, "help! help!")
+						while (true) do
+							local isCat = dget(18) < 3
+							-- build dialog options
+								dialog_set({ 
+								(not me.greeted and "h-hello?" or ""),
+								((me.greeted and not me.explained) and "are you like a trapped soul or something?" or ""),
+								(not me.greeted and "sorry, can you speak up?" or ""),
+								((me.explained and not me.banish) and "what do you do?" or ""),
+								((me.banish and not me.price) and "so you can banish the demon in the living room!" or ""),
+								((isCat and me.banish and me.bothered and not me.cats) and "why don't you banish the cat then?" or ""),
+								((isCat and me.explained and not me.bothered) and "is the cat bothering you?" or ""),
+								((me.price and not me.cost) and "a price? like my soul, or my firstborn or..." or ""),
+								("wait, why am I talking to jewelry")
+							})
+							dialog_start(selected_actor.col, 12)
+
+							-- wait for selection
+							while not selected_sentence do break_time() end
+							-- chosen options
+							dialog_hide()
+
+							cutscene(
+								1, -- no verbs
+								function()
+									say_line(selected_sentence.msg)
+									
+									if selected_sentence.num == 1 then
+										say_line(me, "hiya!:*cough* I mean.: who dareth approachest?!")
+										me.greeted = true
+
+									elseif selected_sentence.num == 2 then
+										if isCat then 
+											say_line(me, "yes, I'm trapped... under this cat!: nah, I'm just a magickal item")
+										else
+											say_line(me, "nah, I'm just a magickal item")
+										end
+										me.explained = true
+									
+									elseif selected_sentence.num == 3 then
+										shake(true)	
+										say_line(me, "♥🅾️∧⬇️█♥⬆️░🐱!!!")
+										me.greeted = true
+									
+									
+									elseif selected_sentence.num == 4 then
+										say_line(me, "I make bad things go away!--:*cough* I mean.:I banish souls unto thy abyss!")
+										me.banish = true
+									elseif selected_sentence.num == 5 then
+										say_line(me, "oh sure I'd be happy t--:*cough* yes...:for a PRICE")
+										me.price = true
+										dset(20,2)
+									elseif selected_sentence.num == 7 then
+										say_line(me, (swear and "fuck yes" or "YES").." get it off me!!!")
+										me.bothered = true
+										
+									elseif selected_sentence.num == 6 then
+										say_line("you... don't understand cats.")
+										me.cats = true
+									elseif selected_sentence.num == 8 then
+										say_line(me, "fifty cents!")
+										me.cost = true
+									elseif selected_sentence.num == 9 then
+										dialog_end()
+
+									end
+								end
+							)
+							shake(false)
+							dialog_clear()
+
+						end --dialog loop
+					end
+				end,
+				pickup = function(me)
+					if dget(18) < 2 then
+						say_line(cat, "*hisssssssss!*")
+						say_line("the cat won't let me near it")
+					elseif dget(18) == 2 then
+						say_line(obj_ward, "eeek! get that awful cat away from me!!!")
+					elseif dget(18) > 2 then
+						say_line(obj_ward, "...wheeee...")
+						pickup_obj(obj_ward, main_actor)
+						obj_ward.state = "state_gone"
+						dset(19,2)
+					end
+				end,
+				use = function(me, noun2)
+				if dget(18) < 2 then
+					say_line(cat, "*hisssssssss!*")
+					say_line("the cat won't let me near it")
+				elseif dget(18) == 2 then
+					print_line("no way! not with that cat so close by!",100,30,7,1)
+				else
+						say_line("ok, uh... abraca-banish!")
+				if dget(17) < 2 then
+					local x = 130
+					local y = 70
+					if dget(19) < 2 then 
+						x = 130
+						y = 20
+					end
+					print_line("hey! I don't work for free-:*cough* I mean.:I wilst doeth yourn bidding: for a price",x,y,7,1)
+					--print_line(msg, x, y, col, align, use_caps, duration)
+				else
+				if noun2 == obj_sleeping_bag or noun2 == obj_skull or (noun2 == obj_desk and dget(6) > 1) then -- i don't THINK you can soft lock at this point
+				say_line(obj_ward, "hasta la vista, baby!")
+				put_at(noun2,0,0,rm_void)
+			elseif noun2 == cat then
+				say_line(obj_ward, "we've been over this. bad idea.")
+				else
+					say_line(obj_ward, "i dunno, you might need that later")
+				end
+			end
+					end
 				end
 			}
 		}
+
 	rm_greg = {
 		data = [[
 			map = {0,0,22,7}
@@ -255,7 +650,11 @@ reset_ui()
 			obj_desk,
 			obj_skull,
 			obj_sleeping_bag,
-			obj_ward
+			obj_ward,
+			obj_power_crystal,
+			obj_book,
+			obj_door_crystal,
+			obj_magic_door
 		},
 		enter = function(me)
 			if not me.done_intro then
@@ -269,6 +668,10 @@ reset_ui()
 				-- (setting now, will be re-instated after cutscene)
 				camera_follow(selected_actor)
 				
+			end
+			if dget(18) == 2 then
+				put_at(cat, 28,46, rm_greg)
+				start_script(cat.scripts.follow)
 			end
 		end
 	}
@@ -285,7 +688,10 @@ reset_ui()
 			map = {0,0}
 		]],
 		objects = {
-		},
+			obj_coins,
+			obj_can_opener,
+			obj_tuna
+		}
 	}
 
 
@@ -295,7 +701,8 @@ reset_ui()
 -- active rooms list
 -- 
 rooms = {
-	rm_greg
+	rm_greg,
+	rm_void
 }
 
 
@@ -341,212 +748,57 @@ rooms = {
 				h=2
 				z=60
 				idle = {74,74,74,74}
-				walk_anim_side = { 74,74,74,74 }
-			walk_anim_front = { 74,74,74,74 }
-			walk_anim_back = { 74,74,74,74 }
-			col = 8
+				walk_anim_side = { 105,107,105,107 }
+				walk_anim_front = { 105,107,105,107 }
+				walk_anim_back = { 105,107,105,107 }
+				col = 8
 				trans_col=15
 				face_dir=face_front
 				use_pos={124,55}
 				col=8
-				classes={class_actor}
-				scale=1	
+				classes={class_actor, class_talkable}
+				scale=1
+				walk_speed=0.5
+				frame_delay=3
 			]],
 			verbs = {
 				lookat = function(me)
+					if dget(18) == 2 then
+						say_line("the cat's following me now. great.")
+					else
 					say_line("the "..(swear and "hell" or "heck").."? we're not supposed to have pets!")
 					say_line(me, "*hissss*")
+					end
 				end,
+				talkto = function(me)
+					if dget == 2 then
+						say_line(me, "*mrrrrrow*")
+					else
+						say_line(me, "*hissss*!!!")
+					end
+				end,
+				pickup = function(me)
+					say_line(me, "*hisssssss*!!!")
+					say_line("i don't think it wants to be picked up")
+				end
+			},
+			scripts = {
+				summon = function(me)
+					dset(18,2)
+					put_at(cat,main_actor.x+8, main_actor.y +10, room_curr)
+					say_line(cat, "*mrrrrrow*")
+					start_script(cat.scripts.follow)
+				end,
+				follow = function(me)
+					while true do
+						walk_to(cat,main_actor.x+8, main_actor.y +10)
+						break_time()
+					end
+				end
 			}
 
 	}
 
-	greg = { 	
-		data = [[
-			w = 1
-			h = 4
-			idle = { 205,205,205,205 }
-			talk = { 236,236,236,236 }
-			walk_anim_side = { 205,205,205,205 }
-			walk_anim_front = { 205,205,205,205 }
-			walk_anim_back = { 205,205,205,205 }
-			col = 8
-			trans_col = 11
-			walk_speed = 0.6
-			frame_delay = 5
-			classes = {class_actor, class_talkable}
-			face_dir = face_front
-		]],
-		name = swear and "my weird-ass roommate" or "my creepy roommate",
-		-- sprites for directions (front, left, back, right) - note: right=left-flipped
-		inventory = {
-		},
-		verbs = {
-			lookat = function()
-				say_line("it's greg.")
-			end,
-			talkto=function(me)
-				met_greg = true
-				cutscene(
-					1, -- no verbs
-					function()
-						say_line(me,"hey roomie, sup?")
-					end
-				)
-				while (true) do
-					-- build dialog options
-					dialog_set({ 
-						(not me.opener and "hey, so, about the living room" or ""),
-						(not me.opener and "hey, so, what the "..(swear and "fuck" or "heck").. " greg" or ""),
-						((me.opener and not me.explained) and "oh. sure. naturally. you gonna... clean it up or..." or ""),
-						((me.explained and not me.souled) and "wait, why can't i turn the light on?" or ""),
-						((me.explained and not me.souled) and "what if, hypothetically, someone did turn the light on..." or ""),
-						((me.souled and not me.done) and "hm, yes, interesting. and hypothetically, how might one go about this banishment" or ""),
-						(me.done and "nothing! nothing! just curious.")
-					})
-					dialog_start(selected_actor.col, 12)
-
-					-- wait for selection
-					while not selected_sentence do break_time() end
-					-- chosen options
-					dialog_hide()
-
-					cutscene(
-						1, -- no verbs
-						function()
-							say_line(selected_sentence.msg)
-							
-							if selected_sentence.num == 1 then
-									say_line(me, "oh, haha, yeah,:accidentally summoned a demon: while playing dnd, you know how it is")
-									me.opener = true
-
-							elseif selected_sentence.num == 2 then
-								say_line(me, "woah, calm down brah, it's just a lil demon!")
-								me.opener = true			
-							
-							elseif selected_sentence.num == 3 then
-								say_line(me, "of course!:i mean i gotta go to work but soon as i get back!:don't worry, it's totally contained,:should hold till i get back no prob:just don't turn the light on and you'll be fine")
-								me.explained = true
-							elseif selected_sentence.num == 4 then
-								say_line(me,"oh, light weakens the containment field: you'd only have a few minutes to banish it before it gets loose: and eats your soul or whatever")
-								me.souled = true
-
-							elseif selected_sentence.num == 5 then
-								say_line(me,"well, the containment field would start to fail: you'd only have a few minutes to banish it before it gets loose: and eats your soul or whatever")
-								me.souled = true
-							
-							elseif selected_sentence.num == 6 then
-								say_line(me,"easy peasy, i've got a ward in my room.:hey, i thought you weren't interested in all this satan stuff, what gives?")
-								me.done = true
-
-							elseif selected_sentence.num == 7 then
-								say_line(me, "ok then. welp i gotta go. greg out!")
-								dialog_end()
-								cutscene(1,
-									greg.scripts.greg_out()
-								)
-								return
-							end
-						end
-					)
-
-					dialog_clear()
-
-				end --dialog loop
-			end, -- talkto
-			use = function(me)
-				selected_actor = me
-				camera_follow(me)
-			end
-
-		}, -- verbs
-		scripts = {
-			greg_out = function() 
-				local y = 0
-				while greg.y > 0 do
-					y += 1
-					put_at(greg, 84, 50-y, rm_kitchen)
-					break_time(1)
-				end
-			end
-		}
-	}
-	
-	demon = {
-	data = [[
-		name = um,...
-		z=45
-		w = 2
-		h = 2
-		use_pos=pos_left
-		use_dir=face_right
-		idle = { 105, 107, 105, 107 }
-		talk = { 105,107,105,107 }
-		walk_anim_side = { 105,105,105,105 }
-		walk_anim_front = { 105,105,105,105 }
-		walk_anim_back = { 105,105,105,105 }
-		col=8
-		trans_col = 11
-		walk_speed = 0.1
-		frame_delay = 5
-		classes = {class_actor, class_talkable}
-		scale=1
-		face_dir = face_front
-	]],
-		verbs = {
-				lookat = function()
-					if islit() then
-						say_line("well, that sure wasn't there when i left this morning.")
-					else
-						say_line("i can't see anything, but there's definitely something in here!")
-					end
-				end, --lookat
-				talkto = function(me)
-					-- dialog loop start
-					while (true) do
-						-- build dialog options
-						dialog_set({ 
-							(not me.asked_greet and "uh. hello?" or ""),
-							(islit() and not me.asked_begone and "begone, foul spawn of satan!" or ""),
-							(islit() and "actually, "..(swear and "fuck" or "forget").." this, where's greg" or "hang on, let me turn on the lights")
-						})
-						dialog_start(selected_actor.col, 12)
-
-						-- wait for selection
-						while not selected_sentence do break_time() end
-						-- chosen options
-						dialog_hide()
-
-						cutscene(
-							1, -- no verbs
-							function()
-								say_line(selected_sentence.msg)
-
-								if not me.asked_greet then
-									shake(true)
-									say_line("✽⬆️★░☉⧗☉░⧗🅾️!", true)
-									me.asked_greet=true
-								
-								elseif selected_sentence.num == 3 then
-									dialog_end()
-									return
-								
-								else
-									shake(true)
-									say_line("🅾️…🅾️ ⬆️⬆️⬆️!!!", true)
-									me.asked_begone = true
-								end
-
-							end)
-							shake(false)
-
-						dialog_clear()
-
-					end --dialog loop
-
-				end --talkto
-		}
-}
 
 
 -- 
@@ -555,8 +807,6 @@ rooms = {
 actors = {
 	main_actor,
 	cat
-	-- purp_tentacle,
-	-- mi_actor
 }
 
 
@@ -569,11 +819,62 @@ actors = {
 function startup_script()	
 	-- set ui colors
 	reset_ui()
-	put_at(cat, 124,22, rm_greg)
+	music(0)
+	get_it(obj_book, 5)
+	get_it(obj_power_crystal,6)
+	get_it(obj_door_crystal,7)
+
+	if dget(9) > 1 then
+		obj_desk.state = "state_open"
+	else
+		obj_desk.state = "state_closed"
+	end
+	get_it(obj_skull,10)
+	if dget(17) < 2 then
+		get_it(obj_coins, 12)
+	end
+	get_it(obj_can_opener,13)
+	if dget(14) > 1 then
+		pickup_obj(obj_can_opener, main_actor)
+		obj_can_opener.state = "state_powered"
+		obj_can_opener.name = "working can opener"
+	end
+	if dget(15) > 1 then
+		obj_power_crystal.name = "power crystal"
+		obj_door_crystal.name = "wayfinding crystal"
+	end
+	if dget(16) == 3 then
+		obj_tuna.state = "state_open"
+		obj_tuna.name = "opened tuna"
+		if dget(18) < 3 then
+			pickup_obj(obj_tuna, main_actor)
+		end
+	end
+	if dget(16) == 2 then
+		pickup_obj(obj_tuna, main_actor)
+		obj_tuna.state = "state_gone"
+	end
+
+	if dget(18) == 6 then
+		obj_tuna.z = 64
+		put_at(obj_tuna, 110,49,rm_greg)
+		put_at(cat,116,59, rm_greg)
+	elseif dget(18) < 2 then
+		put_at(cat, 124,22, rm_greg)
+	end
+	get_it(obj_ward,19)
+
 
 	-- set which room to start the game in 
 	-- (e.g. could be a "pseudo" room for title screen!)
 	change_room(rm_greg, 1) -- iris fade
+end
+
+function get_it(obj, num)
+	if dget(num) > 1 then
+		obj.state = "state_gone"
+		pickup_obj(obj,main_actor)
+	end
 end
 -- (end of customisable game content)
 
@@ -750,7 +1051,9 @@ palt(0,false) palt(room_curr.trans_col,true) end map(room_curr.map[1],room_curr.
 if bt.states
 or(bt.state and bt[bt.state] and bt[bt.state]>0) and(not bt.dependent_on or bt.dependent_on.state==bt.dependent_on_state) and not bt.owner or bt.draw or bt.dn then ig(bt) end else if bt.in_room==room_curr then
 ih(bt) end end end end end end function ic(bt) if bt.col_replace then
-fp=bt.col_replace pal(fp[1],fp[2]) end if bt.lighting then
+fp=bt.col_replace 
+	pal(fp[1],fp[2]) 
+end if bt.lighting then
 ii(bt.lighting) elseif bt.in_room and bt.in_room.lighting then ii(bt.in_room.lighting) end end function ig(bt) local ij=0 ic(bt) if bt.draw then
 bt.draw(bt) else if bt.dn then
 ik(bt) ij=bt.dn[bt.dp] end il=1 if bt.repeat_x then il=bt.repeat_x end
@@ -824,78 +1127,78 @@ hy=sub("\65\66\67\68\69\70\71\72\73\74\75\76\77\78\79\80\81\82\83\84\85\86\87\88
 
 
 __gfx__
-000000000000000000000000000000004444444444000000444444445555555566666666ddd5ddd50000000055000000101010105555555567777677bbccccbb
-000000000000000000000000000000004444444044000000444444445555555566666666dd5ddd5d0000000055550000010101015555555567775577bccccccb
-00800800000000000000000000000000aaaaaa00aaaa000005aaaaaa5555555566666665d5ddd5dd0000000055555500101010105555555566656556bc7777cb
-0008800055555555ddddddddeeeeeeee99999000999900000599999955555555655566565ddd5ddd0000000055555555010101015555555577757557bc7777cb
-0008800055555555ddddddd5eeeeeeee4444000044444400000544445555555566655656ddd5ddd50000000055555555101010105555555577757777bccccccb
-0080080055555555dddddd5deeeeeeee4440000044444400000544445555555566566566dd5ddd5d0000000055555555010101015555555566656666bbccccbb
-0000000055555555ddddd5ddeeeeeeeeaa000000aaaaaaaa000005aa5555555565666666d5ddd5dd0000000055555555101010105555555567757677bbb45bbb
-0000000055555555dddd5dddeeeeeeee90000000999999990000059955555555556666665ddd5ddd0000000055555555010101015555555555757655bbb45bbb
-0000000077777755666666d5bbbbbbeedd5555dd333333331313134466666666677776776666666677777777000000551010104499999999884bbbbbbbb45bbb
-00000000777755556666dd5dbbbbeeeedd6666dd333333333131314466666666677776771c1c1c1c77777777000055550101014444444444884bbbbbbbb45bbb
-000010007755555566ddd5ddbbeeeeeed666666d333333331313aaaa6666666666666666c1c1c1c177777677005555551010aaaa00045000884bbbbbbbb45bbb
-0000c000555555555ddd5dddeeeeeeee77777777333333333131999966666666777677771c1c1c1c77777777555555550101999900045000884bbbbbbbb45bbb
-001c7c1055555555ddd5ddd5eeeeeeee7777777733333333134444446666666677767777c1c1c1c177777777555555551044444400045000884bbbbbbbb45bbb
-0000c00055555555dd5ddd5deeeeeeee53335553333333333144444466666666666666661c1c1c1c77777777555555550144444400045000bbbbbbbbbbb45bbb
-0000100055555555d5ddd5ddeeeeeeee5555555533333333aaaaaaaa6666666667777677c1c1c1c17777777755555555aaaaaaaa00045000bbbbbbbbbbb45bbb
-00000000555555555ddd5dddeeeeeeee55555355333333339999999966666666677776777c7c7c7c77777777555555559999999900045000bbbbbbbbbbb45bbb
-0000000055777777dd666666eebbbbbb666666665555555544444444777777777777777755555555663333334444444444444445000450008888888999999999
-0000000055557777dd5d6666eeeebbbb777777775555333344444444777777777777777755555555663333334444444444444458000450008888889444444444
-0000000055555577d5ddd566eeeeeebb5555558855333333aaaaaaaa77777777777777775555555566333333aaaaaa4444444588000450008888894888845888
-000c0000555555555ddd5dddeeeeeeee555555885333333399999999777777777777777755555555663333339999994444445888000450008888948888845888
-0000000055555555ddd5ddd5eeeeeeee666688885333333344444444777777555577777755555555333333334444444444458888000450008889488888845888
-0000000055555555dd5ddd5deeeeeeee777788885533333344444444777755555555777755555555333333334444444444588888000450008894588888845888
-0000000055555555d5ddd5ddeeeeeeee5588888855553333aaaaaaaa77555555555555770000000033333333aa44444445888888999999998944588888845888
-00000000555555555ddd5dddeeeeeeee558888885555555599999999555555555555555500000000333333339944444458888888555555559484588888845888
-0000000055555555dddddddd25555525555555555555555544444444222222225555555655555555255555556555555533333336633333338884588988845888
-0000000055555555dddddddd22222222555555253333555544444444222222225555556755555552225555557655555533333367763333338884589488845888
-0000000055555555dddddddd555525555555525533333355aaaaaa50222222225555567755555522222555557765555533333677776333338884594488845888
-0000000055555555dddddddd55552555555552553333333599999950222222225555677755555222222255557776555533336777777633338884944488845888
-0000000055555555dddddddd55552555552555553333333544445000222222225556777755552222222225557777655533367777777763338889444488845888
-0000000055555555dddddddd22222222552555553333335544445000222222225567777755522222222222557777765533677777777776338894444488845888
-0b03000055555555dddddddd255555255255555533335555aa500000222222225677777755222222222222257777776536777777777777638944444499999999
-b00030b055555555dddddddd25555525555555555555555599500000222222226777777752222222222222227777777667777777777777769444444455555555
-33333366111111510000000000000000577777777777777777555555555555775555555555555555ff1ff1f111111fff67777677d00000004444444444444444
-33333366111115550000000000000000700000077000000770700000000007079f55555555555555f1011010000001ff57777677d50000004ffffff44ffffff4
+00000000000000000000000000000000444444444400000033aaaa3a5555555566666666ddd5ddd50000000055000000101010105555555567777677bbccccbb
+0000000000000000000000000000000044444440440000003aabaaaa5555555566666666dd5ddd5d0000000055550000010101015555555567775577bccccccb
+00800800000000000000000000000000aaaaaa00aaaa0000aabbbbab5555555566666665d5ddd5dd0000000055555500101010105555555566656556bc7777cb
+0008800055555555ddddddddeeeeeeee9999900099990000abb7bbbb55555555655566565ddd5ddd0000000055555555010101015555555577757557bc7777cb
+0008800055555555ddddddd5eeeeeeee4444000044444400bb7777b75555555566655656ddd5ddd50000000055555555101010105555555577757777bccccccb
+0080080055555555dddddd5deeeeeeee4440000044444400b77377775555555566566566dd5ddd5d0000000055555555010101015555555566656666bbccccbb
+0000000055555555ddddd5ddeeeeeeeeaa000000aaaaaaaa773333735555555565666666d5ddd5dd0000000055555555101010105555555567757677bbb45bbb
+0000000055555555dddd5dddeeeeeeee9000000099999999733a333355555555556666665ddd5ddd0000000055555555010101015555555555757655bbb45bbb
+0000000077777755666666d5bbbbbbeedd5555dd3333333333aaaa3a66666666677776776666666677777777000000551010104499999999884bbbbbbbb45bbb
+00000000777755556666dd5dbbbbeeeedd6666dd333333333aabaaaa66666666677776771c1c1c1c77777777000055550101014444444444884bbbbbbbb45bbb
+000010007755555566ddd5ddbbeeeeeed666666d33333333aabbbbab6666666666666666c1c1c1c177777677005555551010aaaa00045000884bbbbbbbb45bbb
+0000c000555555555ddd5dddeeeeeeee7777777733333333abb7bbbb66666666777677771c1c1c1c77777777555555550101999900045000884bbbbbbbb45bbb
+001c7c1055555555ddd5ddd5eeeeeeee7777777733333333bb7777b76666666677767777c1c1c1c177777777555555551044444400045000884bbbbbbbb45bbb
+0000c00055555555dd5ddd5deeeeeeee5333555333333333b773777766666666666666661c1c1c1c77777777555555550144444400045000bbbbbbbbbbb45bbb
+0000100055555555d5ddd5ddeeeeeeee5555555533333333773333736666666667777677c1c1c1c17777777755555555aaaaaaaa00045000bbbbbbbbbbb45bbb
+00000000555555555ddd5dddeeeeeeee5555535533333333733a333366666666677776777c7c7c7c77777777555555559999999900045000bbbbbbbbbbb45bbb
+0000000055777777dd666666eebbbbbb666666665555555533aaaa3a777777777777777755555555663333334444444444444445000450008888888999999999
+0000000055557777dd5d6666eeeebbbb77777777555533333aabaaaa777777777777777755555555663333334444444444444458000450008888889444444444
+0000000055555577d5ddd566eeeeeebb5555558855333333aabbbbab77777777777777775555555566333333aaaaaa4444444588000450008888894888845888
+000c0000555555555ddd5dddeeeeeeee5555558853333333abb7bbbb777777777777777755555555663333339999994444445888000450008888948888845888
+0000000055555555ddd5ddd5eeeeeeee6666888853333333bb7777b7777777555577777755555555333333334444444444458888000450008889488888845888
+0000000055555555dd5ddd5deeeeeeee7777888855333333b7737777777755555555777755555555333333334444444444588888000450008894588888845888
+0000000055555555d5ddd5ddeeeeeeee55888888555533337733337377555555555555770000000033333333aa44444445888888999999998944588888845888
+00000000555555555ddd5dddeeeeeeee5588888855555555733a3333555555555555555500000000333333339944444458888888555555559484588888845888
+0000000055555555dddddddd25555525555555555555555533aaaa3a222222225555555655555555255555556555555533333336633333338884588988845888
+0000000055555555dddddddd2222222255555525333355553aabaaaa222222225555556755555552225555557655555533333367763333338884589488845888
+0000000055555555dddddddd555525555555525533333355aabbbbab222222225555567755555522222555557765555533333677776333338884594488845888
+0000000055555555dddddddd555525555555525533333335abb7bbbb222222225555677755555222222255557776555533336777777633338884944488845888
+0000000055555555dddddddd555525555525555533333335bb7777b7222222225556777755552222222225557777655533367777777763338889444488845888
+0000000055555555dddddddd222222225525555533333355b7737777222222225567777755522222222222557777765533677777777776338894444488845888
+0b03000055555555dddddddd25555525525555553333555577333373222222225677777755222222222222257777776536777777777777638944444499999999
+b00030b055555555dddddddd255555255555555555555555733a3333222222226777777752222222222222227777777667777777777777769444444455555555
+33333366111111510000000000000000577777777777777777555555555555772555552555555555ff1ff1f111111fff67777677d00000004444444444444444
+33333366111115550000000000000000700000077000000770700000000007079f22222255555555f1011010000001ff57777677d50000004ffffff44ffffff4
 33333366111119a90000000000000000700000077000000770070000000070079f5eeeee55555555100000100010001f05666666d51000004f4444944f444494
 33333366dddddd9d0000000000000000700000077000000770006000000600079f5cccc555557777180800000100000155767777d51000004f4444944f444494
 33333333111111110000000000000000700000077000000770006000000600079f55999955775755100000000100000105767777d51000004f4444944f444494
 33333333111111660000000000000000700000077000000770006000000600079f58888857555575f10011100101000155666666d51000004f4444944f444494
 33333333111111660000000000000000700000077000000770006000000600079fdddddd75555577ff1100011110001f05777677d51000004f4444944f444494
 33333333dddddd660000000000000000777777777777777777776000000677774444444477777757ff101000000011ff57777677d51000004f4444944f444494
-00077000222222222222bbbb0000000070000067760000077006600000066007bbbbbbbb25555525fff111111111ffff44444444d51000004f4444944f444494
-00755700222222222222bbbb0000000070000607706000077060600000060607bbcdbb6522222222ffffffffffffffff4ffffff4d51000004f9999944f444494
-075005702eeeeeeeeee2bbbb0000000070000507705000077050600000060507b3cd826555552555ffffffffffffffff4f444494d5100000444444444f449994
-777007772e55eeeeeee2bbbb000a0a0070000007700000077000600000060007b3cd826555552555ffffffffffffffff4f444494d5100000444444444f994444
-0070070022eeeeeeee22bbbb00aaa00070000007700000077005000000005007b3cd826555552555ffffffffffffffff4f444494d510000049a4444444444444
-00700700b2eeeeeeee2bbbbb00aa9a0070000007700000077050000000000507b3cd826522222222ffffffffffffffff6f444496d51000004994444444444444
-00777700b22eeeeee22bbbbb00a99a0077777777777777777500000000000077b3cd8265ffffffffffffffffffffffffd644446dd51000004444444449a44444
-00555500bb22eeee22bbbbbb00444400555555555555555555555555555555554444444444444444ffffffffffffffffdd4444ddd51000004ffffff449944444
-00070000b2222222222bbbbb677776777000070055555555bb666bbbbbbbbbbb7777777700000000000000500000000000000000d51000004f44449444444444
-00070000b2222222222bbbbb677776777077770011111111b6bbb6bb555b5bbbdddddddd00500500000005650050050000000000d51000004f4444944444fff4
-00070000b2eeeeeeee2bbbbb6666666670070000111111116bbbb6bb666666bb6666666605655600000005650565560000000000d51000004f4444944fff4494
-77707770b2eeeeeeee2bbbbb7776777770777000111111116bbb6bbbbbbbc7cb7777677756666650000056505666665000000000d51000004f4444944f444494
-00070000bb22222222bbbbbb777677777070000055555555b6666cccbbbc7a7c666d6d6653636655555556505363665555555000d51000004f4444944f444494
-00070000bbb2eeee2bbbbbbb666666667007000011111111bbbbca9cbbb73337666d6d6656e666666666650056e6666666666500d51111114f4444944f444494
-00070000bbb2eeee2bbbbbbb677776777777000711111111bbbbc9acbbbc7a7c666d6d6605666666666665000566666666666650d55555554ffffff44f444494
-00000000bbb2eeee2bbbbbbb677776775555775711111111bbbbccccbbbbc7cb666d6d6600556666666650000055666666665650dddddddd444444444f444494
-00777700bbb2eeee2bbbbbbb677776776dd6dd6d11111111444d66666666d444666d6d6600005666666650000000566666665650bbbbbbbb4f4444944f444494
-00755700bbb2eeee2bbbbbbb677776776666666611111111444d66666666d444666d6d6600005665556650000000566555665565b66bbbbb4f4444944f444994
-00700700bbbb2222bbbbbbbb66666666d6dd6dd611111111444d66666666d444666d6d6600005650005650000000565005655565666bbbbb4f4444944f499444
-77700777bbbbbbbbbbbbbbbb77767777d6dd6dd6dddddddd444d66666666d444666d6d6600005650005650000005665000565050676bbbbb4f4444944f944444
-57500575bbbbbbbbbbbbbbbb777677776666666611111111444d66666666d444666d6d6600005650005650000005650000566500676bbbbb4f44449444444400
-05700750bbbbbbbbbbbbbbbb666666666dd6dd6d66111111444d66666666d444666d6d660000565000565000005665000005650066bbbbbb4f44449444440000
-00577500bbbbbbbbbbbbbbbb677776776dd6dd6d66111111444dddddddddd444dddd6ddd00005550005550000005500000055500bbbbbbbb4f44449444000000
-00055000bbbbbbbbbbbbbbbb677776776666666666dddddd44444444444444446666666600000000000000000000000000000000bbbbbbbb4f44449400000000
-bbbbffffffffffffffffffffffbbbbbbbbbb4444444444444444444444bbbbbbbb77777bbbbb677600000000bbbbbb777777777700000000bbbbbbbbffffffff
-bbbf4444444444444444444444fbbbbbbbbf9555555555555555555559fbbbbbb7667677bbbfbb7700000000bbbbb7cccccccccc00000000bbbbbbbbf666677f
-bbf44ffffffffffffffffffff44fbbbbbbf595555555555555555555595fbbbbf7777667bbbf777b00000000bbbb7ccccccccccc00000000999999997cccccc7
-bf44444444444444444444444444fbbbbf55955555555555555555555955fbbbfbbb7777bbbbbbbb00000000bbbb76666666cccc0000000098888884d776666d
-b94ffffffffffffffffffffffff49bbbb9559999999999999999999999559bbbbf77777bbbbbbbbb00000000bbb7666555556ccc0000000098888884f676650f
-b9444444444444444444444444449bbbb9599444444444444444444449959bbbbbb777bbbbbbbbbb00000000bbb7666555556ccc0000000094444444f676650f
-b9444444444444444444444444449bbbb9944444444444444444444444499bbbbbbbbbbbbbbbbbbb00000000bbb7665555556ccc00000000bbbbbbbbf676650f
-999999999999999999999999999999bb99ffffffffffffffffffffffffff99bbbbbbbbbbbbbbbbbb00000000bbb7666555556ccc00000000bbbbbbbbff7665ff
+00077000bbbbbbbbbbbbbbbb0000000070000067760000077006600000066007bbbbbbbb25555525fff111111111ffff44444444d51000004f4444944f444494
+00755700bbbbbbbbb2dddddb0000000070000607706000077060600000060607bbcdbb6522222222ffffffffffffffff4ffffff4d51000004f9999944f444494
+07500570bbbbbbbbb2daaadb0000000070000507705000077050600000060507b3cd826555552555ffffffffffffffff4f444494d5100000444444444f449994
+77700777bbbbbbbbb2dddddb000a0a0070000007700000077000600000060007b3cd826555552555ffffffffffffffff4f444494d5100000444444444f994444
+00700700bbbbbbbbb2dddddb00aaa00070000007700000077005000000005007b3cd826555552555ffffffffffffffff4f444494d510000049a4444444444444
+00700700b677bbbbb2daaadb00aa9a0070000007700000077050000000000507b3cd826522222222ffffffffffffffff6f444496d51000004994444444444444
+007777007a66ebbbb2dddddb00a99a0077777777777777777500000000000077b3cd8265ffffffffffffffffffffffffd644446dd51000004444444449a44444
+00555500b6eebbbbb27777bb00444400555555555555555555555555555555554444444444444444ffffffffffffffffdd4444ddd51000004ffffff449944444
+000700000000000000000000677776777000070055555555bb666bbbbbbbbbbb77777777f1fffffffffffffff1ffffffffffffffd51000004f44449444444444
+000700000666666000000000677776777077770011111111b6bbb6bb555b5bbbdddddddd101fffffff1ff1ff101fffffff1ff1ffd51000004f4444944444fff4
+0007000065555556000000006666666670070000111111116bbbb6bb666666bb66666666101fffffff01101f101fffffff01101fd51000004f4444944fff4494
+7770777076666661055555507776777770777000111111116bbb6bbbbbbbc7cb77776777f101fffff1000001f101fffff1000001d51000004f4444944f444494
+000700007cccccc15f9f9f95777677777070000055555555b6666cccbbbc7a7c666d6d66f101111111008081f101111111008081d51000004f4444944f444494
+000700007cccccc175555551666666667007000011111111bbbbca9cbbb73337666d6d66ff10000000000001ff10000000000001d51111114f4444944f444494
+00070000055555507cccccc1677776777777000711111111bbbbc9acbbbc7a7c666d6d66ff1000000000001fff1000000000001fd55555554ffffff44f444494
+000000000000000005555550677776775555775711111111bbbbccccbbbbc7cb666d6d66fff10000000011fffff10000000011ffdddddddd444444444f444494
+00777700bbb2eeee2bbbbbbb677776776dd6dd6d11111111444d66666666d444666d6d66fff100000001fffffff100000001ffffbbbbbbbb4f4444944f444494
+00755700bbb2eeee2bbbbbbb677776776666666611111111444d66666666d444666d6d66fff100111001fffffff100111001ffffb66bbbbb4f4444944f444994
+00700700bbbb2222bbbbbbbb66666666d6dd6dd611111111444d66666666d444666d6d66fff101fff101ffffffff101ff101ffff666bbbbb4f4444944f499444
+77700777bbbbbbbbbbbbbbbb77767777d6dd6dd6dddddddd444d66666666d444666d6d66fff101fff101fffffff101fff1001fff676bbbbb4f4444944f944444
+57500575bbbbbbbbbbbbbbbb777677776666666611111111444d66666666d444666d6d66fff101fff101ffffff1001ffff101fff676bbbbb4f44449444444400
+05700750bbbbbbbbbbbbbbbb666666666dd6dd6d66111111444d66666666d444666d6d66fff101fff101ffffff101fffff1001ff66bbbbbb4f44449444440000
+00577500bbbbbbbbbbbbbbbb677776776dd6dd6d66111111444dddddddddd444dddd6dddffff1fffff1fffffff111ffffff11fffbbbbbbbb4f44449444000000
+00055000bbbbbbbbbbbbbbbb677776776666666666dddddd444444444444444466666666ffffffffffffffffffffffffffffffffbbbbbbbb4f44449400000000
+bbbbffffffffffffffffffffffbbbbbbbbbb4444444444444444444444bbbbbbbb77777bbbbb677600000000bbbbbb777777777700000000bbbbbbbbb555555b
+bbbf4444444444444444444444fbbbbbbbbf9555555555555555555559fbbbbbb7667677bbbfbb7700000000bbbbb7cccccccccc00000000bbbbbbbbbb60655b
+bbf44ffffffffffffffffffff44fbbbbbbf595555555555555555555595fbbbbf7777667bbbf777b00000000bbbb7ccccccccccc0000000099999999b60506bb
+bf44444444444444444444444444fbbbbf55955555555555555555555955fbbbfbbb7777bbbbbbbb00000000bbbb76666666cccc0000000098888884b60006bb
+b94ffffffffffffffffffffffff49bbbb9559999999999999999999999559bbbbf77777bbbbbbbbb00000000bbb7666555556ccc0000000098888884b60006bb
+b9444444444444444444444444449bbbb9599444444444444444444449959bbbbbb777bbbbbbbbbb00000000bbb7666555556ccc0000000094444444b60006bb
+b9444444444444444444444444449bbbb9944444444444444444444444499bbbbbbbbbbbbbbbbbbb00000000bbb7665555556ccc00000000bbbbbbbbb60006bb
+999999999999999999999999999999bb99ffffffffffffffffffffffffff99bbbbbbbbbbbbbbbbbb00000000bbb7666555556ccc00000000bbbbbbbbbb666bbb
 bb94444449bbbbbbbbbb94444449bbbbbb94444449bbbbbbbbbb94444449bbbbbbbbbbbbbbbc999bbbbbbbbbbbbbbbbb65555ccc00000000fff76fffffffffff
 bb94ffff49bbbbbbbbbb94ffff49bbbbbb94ffff49bbbbbbbbbb94ffff49bbbbbbbbbbbbbbcc111999bbbbbbbbbbbbbb55555ccc00000000fff76ffff666677f
 bb94944949bbbbbbbbbb94944949bbbbbb94944949bbbbbbbbbb94944949bbbbbbbbbbbbbcc1111999bbbbbbbbbbbbbb55555ccc00000000fbbbbccf75555557
@@ -904,22 +1207,22 @@ bb94444449bbbbbbbbbb94444449bbbbbb94444449bbbbbbbbbb94444449bbbbbbbbbbbbcccc1119
 bb94444449bbbbbbbbbb94444449bbbbbb94444449bbbbbbbbbb94444449bbbbbbbbbbbcccccc11991bbbbbbbbbbbbbb55555ccc00000000fccc888ff676650f
 bb94ffff49bbbbbbbbbb94ffff49bbbbbb94ffff49bbbbbbbbbb94ffff49bbbbbbbbbbccc6ccc19911bbbbbbbbbbbbbb5555cccc00000000fff00ffff676650f
 bb94944949bbbbbbbbbb94944949bbbbbb94944949bbbbbbbbbb94944949bbbbbbbbbbccc66611991bbbbbbbbbbbbbbb55cccccc00000000fff00fffff7665ff
-bb94999949bbbbbbbbbb94999949bbbbbb94999949bbbbbbbbbb94999949bbbbbbbbbcccccc61991bbbbbbbbbbbbbbbbccccccccbbbbbbbbfff76fff00000094
-bb94444449bbbbbbbbbb94444449bbbbbb94444449bbbbbbbbbb94444449bbbbbbbbbccccccc1911bbbbbbbbbbbbbbbbccccccccbbbbbbbbfff76fff00000944
-bb99999999bbbbbbbbbb99999999bbbbbb99999999bbbbbbbbbb99999999bbbbbbbbc66ccccc991bbbbbbbbbbbbbbbbbcccccccc99999999f8888bbf00009440
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccc66ccc9911bbbbbbbbbbbbbbbbbcccccccc98888884888bbbbc00094400
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccc6cc9911bbbbbbbbbbbbbbbbbbcccccccc98888884fbbbbbcf00044000
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccc911bbbbbbbbbbbbbbbbbbbccccc00094444444fbbbcccf00400000
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc6ccccc911bbbbbbbbbbbbbbbbbbbbcccc0555bbbbbbbbfff00fff94000000
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcc66ccc911bbbbbbbbbbbbbbbbbbbbbccc05555bbbbbbbbfff00fff44000000
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccc911bbbbbbbbbbbbbbbbbbbbbbcc0555550066560bfff76fffcccccccc
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc6ccc911bbbbbbbbbbbbbbbbbbbbbbbcc05555500660500fff76fffc000000c
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccc911bbbbbbbbbbbbbbbbbbbbbbbb7705555500666500fcccc88fc0c00c0c
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccc911bbbbbbbbbbbbbbbbbbbbbbbbbbbb5555500000500ccc8888bc00cc00c
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcc6911bbbbbbbbbbbbbbbbbbbbbbbbbbbbb5555507777570f88888bfc00cc00c
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcc611bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb555507775770f888bbbfc0c00c0c
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccc1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb55507757770fff00fffc000000c
-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb55588880fff00fffcccccccc
+bb94999949bbbbbbbbbb94999949bbbbbb94999949bbbbbbbbbb94999949bbbbbbbbbcccccc61991bbbbbbbbbbbbbbbbccccccccbbbbbbbbfff76fffa555555a
+bb94444449bbbbbbbbbb94444449bbbbbb94444449bbbbbbbbbb94444449bbbbbbbbbccccccc1911bbbbbbbbbbbbbbbbccccccccbbbbbbbbfff76fffaa90955a
+bb99999999bbbbbbbbbb99999999bbbbbb99999999bbbbbbbbbb99999999bbbbbbbbc66ccccc991bbbbbbbbbbbbbbbbbcccccccc99999999f8888bbfa90509ab
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccc66ccc9911bbbbbbbbbbbbbbbbbcccccccc98888884888bbbbca90009ab
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccc6cc9911bbbbbbbbbbbbbbbbbbcccccccc98888884fbbbbbcfa90009ab
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccc911bbbbbbbbbbbbbbbbbbbccccc00094444444fbbbcccfa90009ab
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc6ccccc911bbbbbbbbbbbbbbbbbbbbcccc0555bbbbbbbbfff00fffa90009ab
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcc66ccc911bbbbbbbbbbbbbbbbbbbbbccc05555bbbbbbbbfff00fffba999abb
+bbbbbbbbbbbbbbbb00077700bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccc911bbbbbbbbbbbbbbbbbbbbbbcc0555550066560bfff76fffcccccccc
+bbbbbbbbbbbbbbbb00766650bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbc6ccc911bbbbbbbbbbbbbbbbbbbbbbbcc05555500660500fff76fffc000000c
+bbbbbbbbbbbbbbbb00766650bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccc911bbbbbbbbbbbbbbbbbbbbbbbb7705555500666500fcccc88fc0c00c0c
+bbbbbbbbbbbbbbbb07766650bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccc911bbbbbbbbbbbbbbbbbbbbbbbbbbbb5555500000500ccc8888bc00cc00c
+bbbbbbbbbbbbbbbb76655500bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcc6911bbbbbbbbbbbbbbbbbbbbbbbbbbbbb5555507777570f88888bfc00cc00c
+bbbbbbbbbbbbbbbb76665000bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcc611bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb555507775770f888bbbfc0c00c0c
+bbbbbbbbbbbbbbbb76665000bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccc1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb55507757770fff00fffc000000c
+bbbbbbbbbbbbbbbb05550000bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb55588880fff00fffcccccccc
 00077777bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb00000000
 007cccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb00000000
 007cccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb9bbbbbbbbbbbbbbb00000000
@@ -1118,3 +1421,108 @@ __map__
 1702123232323232323232323222021707011131313131313131313131210107070111313131313131313131313131313131313131210107000000000000000017021232323232323232323232220217070111313131313131313131312101071702123232323232323232323222021707011131313131313131313131210107
 1232323232323232323232323232322211313131313131313131313131313121113131313131312515151515151515353131313131313121000000000000000012323232323232323232323232323222113131313131313131313131313131211232323232323232323232323232322211313131313131313131313131313121
 3232323232323232323232323232323231313131313131313131313131313131313131313131313131313131313131313131313131313131000000000000000032323232323232323232323232323232313131313131313131313131313131313232323232323232323232323232323231313131313131313131313131313131
+__sfx__
+0001000012051100510d0510b05109051070510504104031020310101100011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+012c00001886300000188630000018863000001886300000188630000018863000001886300000188630000018863000001886300000188630000018863000001886300000188630000018863000001886300000
+01010000386303263032630306302c6302863023630216301d63019630146300a630016301e6001d6001a6001960015600126000f6000c6000a60007600046000260000600066000660005600046000460004600
+010100000c1600c1610c1610c1610c1610c1610c1610c1610c1610c1610c1610c1610c1610c1610c1510c1510c1510c1510c1510c1510c1410c1410c1410c1310c1310c1310c1210c1210c1210c1110c1110c111
+013f00002405224052240522405224052240522405224052240522405224052240522405224052240522405224052240522405224052240522405224052240522405224052240522405224052240522405224052
+010500001855018541185511854118551185411855118541185511854118551185411855118541185511854118551185411855118541185511854118551185411855118541185511854118551185411855118541
+01020000180501805018040180401803018020180201801018010150001500024000210001e0001c0001a000170001400011000070000a0000500004000020000100000000000000000000000000000000000000
+012c000023d4223d4223d4225d4223d4223d4223d4225d4223d4225d4227d4225d4223d4222d4223d4227d4228d4228d4228d4228d4227d4227d4227d4227d4228d4227d4225d4223d4227d4225d4223d4223d42
+011c000010d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5309d5309d5309d5309d5309d5309d5309d5309d5309d5309d5309d5309d5309d5309d5309d5309d53
+001c000017d5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d5017d5317d5317d5317d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d53
+011c000013d5313d5313d5315d5313d5313d5313d5315d5313d5315d5313d5315d5013d5013d5313d530bd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd53
+001c00001cd531cd531cd531cd531cd531cd531cd531cd531cd531cd531cd531cd531cd531cd531cd531cd5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d53
+011c00000ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530bd530bd530bd530bd530bd530bd530bd530bd530bd530bd530bd530bd530bd530bd530bd530bd53
+011c000015d5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d5315d5015d5315d5315d5315d5312d5312d5312d5312d5312d5312d5312d5312d5312d5312d5312d5312d5312d5312d5312d5312d53
+011c000012d5312d5312d5313d5312d5312d5312d5313d5312d5313d5312d5313d5012d5312d5310d5310d530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed530ed53
+011c00001ad531ad531ad531ad531ad531ad531ad531ad531ad531ad531ad531ad531ad531ad531ad531ad5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d5317d53
+011c00000cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd500cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd530cd53
+011c000013d5313d5313d5313d5313d5313d5313d5313d5313d5313d5313d5313d5013d5313d5315d5315d5317d5317d5317d5317d5015d5315d5315d5315d5313d5013d5313d5313d5312d5312d5312d5312d53
+011c000010d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5010d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d5310d53
+011c000018d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5018d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d5318d53
+010e0000188500000010d500000018a500000010d5000000188500000010d500000018a500000010d5000000188500000010d500000018a500000010d5000000188500000010d500000018a500000010d5000000
+010e002010b500000017b500000013b500000010b50000001cb50000001cb500000015b500000018b500000010b500000017b500000013b500000010b500000015b500000015b500000013b500000012b5000000
+010e0000000000000017d5000000000000000017d5000000000000000018d5000000000000000018d5000000000000000017d5000000000000000017d5000000000000000018d5000000000000000018d5000000
+010e0000000000000010c3010c511cc511cc5110c5110c511cc511cc511cc511cc511cc511cc5110c5110c511fc511fc511ec511ec511cc511cc511ac511ac511cc511cc511cc511cc511cc511cc511cc311cc10
+010e000018c3118c5117c5117c5115c5115c5113c5113c5117c5117c5117c5117c5017c5117c5111c5111c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c4110c3110c11
+010e000018850000000cd500000018a50000000cd50000000b850000000bd500000018a50000000bd500000018850000000cd500000018a50000000cd500000018850000000fd500000018a50000000fd5000000
+010e0000000000000010d5000000000000000010d500000000000000000ed500000000000000000ed5000000000000000010d5000000000000000010d5000000000000000012d5000000000000000012d5000000
+010e002018b500000018b500000018b500000018b500000017b500000017b500000017b500000017b500000018b500000018b500000018b500000018b50000001bb50000001bb50000001bb50000001bb5000000
+010e00002de200000030e20000002fe20000002de20000002fe20000002be200000028e200000000000000002de200000030e20000002fe20000002de200000033e200000033e200000034e200000033e2000000
+010e00000000018c5118c5118c5117c5117c5113c5113c5117c5117c5117c5117c5117c5015c5111c5111c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c5110c410000000000
+010e000000000000002fe232fe232fe23000002de232de232de23000002be23000002be23000002fe230000000000000002fe232fe232fe23000002de232de232de23000002be230000030e23000002fe2300000
+010e000000000000002fe232fe232fe23000002de232de232de23000002be23000002be230000032e230000018c3118c5117c5117c5113c5113c5111c5111c5110c5110c5110c5010c5110c4110c2110c1100000
+010e00002dd4021d4030d4024d402fd4023d402dd4021d402fd4023d402bd401fd4328d401cd4300000000002dd4021d4330d4024d432fd4023d432dd4021d4333d4027d4333d4027d4334d4028d4333d4027d43
+010e002018b500000018b500000018b500000018b500000018b500000018b500000018b500000018b500000012b500000012b500000012b500000012b500000012b500000012b500000012b500000012b5000000
+010e002015b500000015b500000015b500000015b500000015b500000015b500000015b500000015b500000017b500000017b500000017b500000017b500000017b500000017b500000017b500000017b5000000
+010e002013b500000013b500000013b500000013b500000013b500000013b500000013b500000013b500000017b500000017b500000017b500000017b500000017b500000017b500000018b500000017b5000000
+010e002013b500000013b500000013b500000013b500000013b500000013b500000013b500000012b500000010b500000010b500000010b500000010b500000010b500000010b500000010b500000010b5000000
+010e000015d5015d5015d5015d5015d5015d5017d5017d5015d5015d5015d5015d5013d5013d5013d5013d5017d5017d5017d5017d5017d5017d5018d5018d5017d5017d5017d5017d5013d5013d5013d5013d50
+010e00001ad501ad501ad501ad501ad501ad5018d5018d5017d5017d5017d5017d5015d5015d5015d5015d5017d5017d5017d5017d5017d5017d5017d5017d5010d5010d5010d5010d5010d5010d5010d5010d50
+010e002018b500000018b500000018b500000018b500000018b500000018b500000018b500000018b500000012b500000012b500000012b500000012b500000012b500000012b500000012b500000012b5000000
+010e002013b500000013b500000013b500000013b500000013b500000012b500000013b500000015b500000017b500000017b500000017b500000017b500000017b500000017b500000017b500000013b5000000
+010e000013d5013d5013d5013d5013d5013d5012d5012d5013d5013d5013d5013d5015d5015d5015d5015d5012d5012d5012d5012d5012d5012d5012d5012d5012d5012d5012d5012d5013d5013d5012d5012d50
+010e000010d5010d5010d5010d5010d5010d500ed500ed5010d5010d5010d5010d5015d5015d5015d5015d5017d5017d5018d5018d5017d5017d5015d5015d5017d5017d5017d5017d5017d5017d5017d5017d50
+010e000013d5013d5013d5013d5013d5013d5012d5012d5010d5010d5010d5010d5012d5012d5012d5012d5013d5013d5013d5013d5012d5012d5012d5012d5010d5010d5010d5010d5010d5010d5010d5010d50
+010e002013b500000013b500000013b500000013b500000013b500000012b500000013b500000015b500000013b500000013b500000012b500000012b500000010b500000010b500000010b500000010b5000000
+010e002010b500000017b500000013b500000017b500000010b500000017b500000013b500000017b500000010b500000017b500000013b500000017b500000010b500000017b500000013b500000017b5000000
+010e0000000000000017d5000000000000000017d5000000000000000017d5000000000000000017d5000000000000000017d5000000000000000017d5000000000000000017d5000000000000000017d5000000
+010e002015b50000001cb500000018b50000001cb500000015b50000001cb500000018b50000001cb500000015b50000001cb500000018b50000001cb500000015b50000001cb500000018b50000001cb5000000
+010e0000000000000018d5000000000000000018d5000000000000000018d5000000000000000018d5000000000000000018d5000000000000000018d5000000000000000018d5000000000000000018d5000000
+010e000018850000000ed500000018a50000000ed500000018850000000ed500000018a50000000ed500000018850000000ed500000018a50000000ed500000018850000000ed500000018a50000000ed5000000
+010e00200eb500000015b500000012b500000015b50000000eb500000015b500000012b500000015b50000000eb500000015b500000012b500000015b50000000eb500000015b500000012b500000015b5000000
+010e0000000000000015d5000000000000000015d5000000000000000015d5000000000000000015d5000000000000000015d5000000000000000015d5000000000000000015d5000000000000000015d5000000
+010e000018850000000bd500000018a50000000bd500000018850000000bd500000018a50000000bd500000018850000000bd500000018a50000000bd500000018850000000bd500000018a50000000bd5000000
+010e00200bb500000012b50000000eb500000012b50000000bb500000012b50000000eb500000012b50000000bb500000012b50000000eb500000012b50000000bb500000012b50000000eb500000012b5000000
+010e0000000000000012d5000000000000000012d5000000000000000012d5000000000000000012d5000000000000000012d5000000000000000012d5000000000000000012d5000000000000000012d5000000
+010e0000000000000012d5000000000000000012d5000000000000000012d5000000000000000012d500000000000000000fd500000000000000000fd500000000000000000fd500000000000000000fd5000000
+010e00200bb500000012b50000000eb500000012b50000000bb500000012b50000000eb500000012b50000000bb500000012b50000000fb500000012b50000000bb500000012b50000000fb500000012b5000000
+011c000012d5312d5312d5313d5312d5312d5312d5313d5312d5313d5312d5313d5012d5312d5310d5310d530ed530ed530ed530ed530ed530ed530ed530ed530fd530fd530fd530fd530fd530fd530fd530fd53
+010e00001cc301cc511cc511cc511cc511cc511ec511ec511cc511cc511cc511cc501cc511cc511ec511ec511cc511cc511ec511ec511cc511cc511ec511ec511cc511cc511cc511cc511cc511cc4117c3117c11
+010e000018c3118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5018c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c5118c4118c3118c11
+010e00001ac311ac511ac511ac511ac511ac511cc511cc511ac511ac511ac511ac501ac511ac511cc511cc511ac511ac511cc511cc511ac511ac511cc511cc511ac511ac511ac511ac5118c5118c4118c3118c11
+010e000017c3117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5017c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c5117c4117c3117c11
+012c000017b5017b5317b5317b5316b5016b5316b5316b5314b5014b5314b5314b5312b5012b5312b5312b5310b5010b5310b5310b530fb500fb530fb530fb5310b5010b5310b5314b5012b5012b5312b5312b53
+012c000017b5017b5317b5317b5316b5016b5316b5316b5314b5014b5314b5314b5312b5012b5312b5312b5310b5010b5310b5310b530fb500fb530fb530fb5310b5010b5312b5012b5317b5012b5017b5017b50
+__music__
+01 08090a0b
+00 0c0d0e0f
+00 08090a0b
+00 0c0d390f
+02 10111213
+01 14151644
+00 14151644
+00 14151617
+00 14151618
+00 14151617
+00 14151618
+00 191a1b1c
+00 1415161d
+00 1415161e
+00 1415161f
+00 1415161e
+00 1415161f
+00 191a1b20
+00 1415161d
+00 14221625
+00 14241626
+00 14271629
+00 1428162a
+00 14221625
+00 14241626
+00 14281629
+00 142c162b
+00 142d2e3a
+00 142f303b
+00 3132333c
+00 3435363d
+00 142d2e3a
+00 142f303b
+00 3132333c
+00 3438373d
+00 191a1b20
+02 191a1b20
+01 01073e44
+01 01073f44

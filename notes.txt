@@ -2,10 +2,51 @@
 notes: lmao don't try and name something starting with elipses
 don't leave blank lines in your data[[]] block
 
-7275 oh no
+must have use_with=true to make an obj giveable?
+
+74268
 
 bugs:
-entering hall when dark = no pc - but exit and reenter and you appear
-picking "fuck this" before talking to it doesn't exit
-lookat brick in inventory says wrong thing
-can't leave kitchen
+magic door in game-2 not animating?
+items need to show in greg's room inventory
+powering can opener text too low
+sayline for powered can opener in rooms not greg's
+tiny skull sprite in living room, kitchen, outside, reentiring greg room
+in greg's room - use necklace, also necklace dialog too low
+
+todo:
+add music
+copy crystal fn into other rooms?
+more use crystals
+do something with skull
+other ways to lose?
+
+STATES: (1 = no, 2 = yes)
+-- 0: swear 
+-- 1: gone_inside
+-- 2: lighting level of living room
+-- 3: greg's window open
+-- 4: has brick 1 no 2 yes
+-- 5: has tome
+-- 6: has power crystal (3 is used on can opener)
+-- 7: has door crystal
+-- 8: has used magic door
+-- 9: is desk open
+-- 10: has skull
+-- 11: is greg gone
+12: coins
+13: broken can opener
+14 - powered can opener
+15 - has read tome
+16 - picked up tuna is 2, opened is 3
+17 - gave coins to necklace
+18: 2 is cat following, 3 is cat distracted in kitchen, 4 is living room, 5 is outside, 6 is greg's
+19: has ward
+20: has talked to ward?
+21: couch is open   
+-- 63: what ending to use:
+----1: bus and demon gets loose
+----2: eaten by demon?
+----3: victory!
+
+*** talkto necklace in LR
