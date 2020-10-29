@@ -861,6 +861,8 @@ function startup_script()
 		put_at(cat,116,59, rm_greg)
 	elseif dget(18) < 2 then
 		put_at(cat, 124,22, rm_greg)
+	else 
+		put_at(cat,0,0,rm_void)
 	end
 	get_it(obj_ward,19)
 

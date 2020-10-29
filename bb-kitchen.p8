@@ -424,7 +424,7 @@ obj_power_crystal = {
 				end,
 				give = function(me,noun2)
 					if noun2 == cat and obj_tuna.state == "state_open" then
-						dset(18,6)
+						dset(18,3)
 						cutscene(
 							1, -- no verbs
 							function()

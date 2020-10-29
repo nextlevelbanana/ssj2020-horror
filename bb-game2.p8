@@ -3,6 +3,7 @@ version 29
 __lua__
 -- scumm-8 game template
 -- paul nicholas
+-- it's this one
 cartdata("nlb_batshit_basement")
 swear = dget(0) == 2
 
@@ -176,7 +177,7 @@ obj_coins = {
 		state=state_here
 		w=1
 		h=1
-		x=57
+		x=17
 		y=37
 		z=60
 		trans_col=0
@@ -197,7 +198,7 @@ obj_coins = {
 				obj_coins.state = "state_gone"
 				put_at(obj_coins, 0,0,rm_void)
 				dset(17,2)
-				say_line(obj_ward, "hot dog, two whole quarters!:*cough* i mean.:i wilt do thyst bidding now, master")
+				print_line(obj_ward, "hot dog, two whole quarters!:*cough* i mean.:i wilt do thyst bidding now, master", obj_ward.x,obj_ward.y - 12,7)
 				elseif noun2 == demon then
 					say_line("can I give you a quarter to go away?")
 					lose()
@@ -299,23 +300,23 @@ obj_ward = {
 	verbs = {
 		lookat = function()
 			say_line("it's pretty, in a terrifying kind of way")
-			print_line("take a picture, it lasts longer!", obj_ward.x,obj_ward.y - 12,7,1)
+			print_line("take a picture, it lasts longer!", obj_ward.x,obj_ward.y - 22,7,1)
 		end,
 		talkto = function()
-			say_line(obj_ward, dget(17) < 2 and "for a ~~price~~" or "ready when u r!")
+			print_line(dget(17) < 2 and "for a ~~price~~" or "ready when u r!", obj_ward.x,obj_ward.y - 22)
 		end,
 		use = function(me,noun2)
 			say_line("ok, uh... abraca-banish!")
 			if dget(17) < 2 then
-				say_line(obj_ward,"hey! I don't work for free yknow-:*cough* I mean.:I wilst doeth yourn bidding: for a price")
+				print_line("hey! I don't work for free yknow-:*cough* I mean.:I wilst doeth yourn bidding: for a price", obj_ward.x,obj_ward.y - 22, 7)
 			else
 				if noun2 == cat then
-					say_line(obj_ward, "we've been over this. bad idea.")
+					print_line("we've been over this. bad idea.", obj_ward.x,obj_ward.y - 22, 7)
 				elseif noun2 != demon then -- i don't THINK you can soft lock at this point
-				say_line(obj_ward, "hasta la vista, baby!")
+				print_line("hasta la vista, baby!", obj_ward.x,obj_ward.y - 22,7)
 				put_at(noun2,0,0,rm_void)
 				else
-					say_line(obj_ward, "boy BYE")
+					print_line("boy BYE", obj_ward.x,obj_ward.y - 22)
 					demon.scripts.banish()
 				end
 			end
@@ -565,10 +566,10 @@ end
 					obj_couch.w = 6
 					dset(21,2)
 					if obj_coins.owner != main_actor then
-						put_at(obj_coins, 57,37, rm_hall)
+						put_at(obj_coins, 47,37, rm_hall)
 					end
 					if obj_can_opener.owner != main_actor then
-						put_at(obj_can_opener, 66,37,rm_hall)
+						put_at(obj_can_opener, 26,37,rm_hall)
 					end
 				end,
 				close = function(me)

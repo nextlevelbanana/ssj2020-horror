@@ -191,7 +191,7 @@ obj_coins = {
 				obj_coins.state = "state_gone"
 				put_at(obj_coins, 0,0,rm_void)
 				dset(17,2)
-				say_line(obj_ward, "hot dog, two whole quarters!:*cough* i mean.:i wilt do thyst bidding now, master")
+				print_line("hot dog, two whole quarters!:*cough* i mean.:i wilt do thyst bidding now, master", main_actor.x+8, main.actor.y,12)
 			end
 		end
 	}
@@ -298,9 +298,9 @@ obj_ward = {
 		talkto = function(me)
 			if dget(20) > 1 then
 				if dget(17) < 2 then
-					print_line("for a ~~price~~",obj_ward.x,obj_ward.y - 12,7,1)
+					print_line("for a ~~price~~",obj_ward.x,obj_ward.y - 20,7,1)
 				else
-					say_line(me,"hey buddy! u ready to banish some "..(swear and "shit" or "stuff").."?")
+					print_line("hey buddy! u ready to banish some "..(swear and "shit" or "stuff").."?", obj_ward.x,obj_ward.y - 26,7)
 				end
 			else
 				while (true) do
